@@ -34,6 +34,9 @@ public class BPlusTreeWrapper {
         }
     }
 
+    public long getDiskAccesses() { return tree.getDiskReads(); }
+    public void resetStats() { tree.resetStats(); }
+
     /** Close the B+Tree */
     public void close() throws Exception {
         if (tree != null) tree.close();

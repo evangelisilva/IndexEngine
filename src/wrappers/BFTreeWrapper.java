@@ -4,7 +4,7 @@ import btree.BFTree;
 
 public class BFTreeWrapper {
 
-    private BFTree tree;
+    public BFTree tree;
 
     /** Initialize a B+Tree with given cache size (in bytes) */
     public void init(String path, long cacheSizeBytes) throws Exception {
@@ -33,6 +33,9 @@ public class BFTreeWrapper {
             tree.get((long) s);
         }
     }
+
+    public long getDiskAccesses() { return tree.tree.getDiskReads(); }
+    public void resetStats() { tree.resetStats(); }
 
     /** Close the B+Tree */
     public void close() throws Exception {

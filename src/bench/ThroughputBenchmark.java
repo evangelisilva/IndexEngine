@@ -25,7 +25,7 @@ public class ThroughputBenchmark {
     };
 
     private static final double[] ZIPF_EXPONENTS = {0.1, 0.5, 1.0, 2.0};
-    private static final String OUTPUT_CSV = "combined_benchmark_new_2.csv";
+    private static final String OUTPUT_CSV = "results/bench__rocks_bp_bf__throughput_time_disklookup__2m_1m.csv";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Benchmark LSMTree (RocksDB), B+Tree and BfTree");
@@ -36,7 +36,8 @@ public class ThroughputBenchmark {
             writer.write(
                 "Cache size (MB),Zipf Skewness,"
                 + "RocksDB Throughput (Mops/s),B+Tree Throughput (Mops/s),BfTree Throughput (Mops/s),"
-                + "RocksDB Time per Op (µs/op),B+Tree Time per Op (µs/op),BfTree Time per Op (µs/op)\n"
+                + "RocksDB Time per Op (µs/op),B+Tree Time per Op (µs/op),BfTree Time per Op (µs/op),"
+                + "RocksDB Disk/Lookup,B+Tree Disk/Lookup,BfTree Disk/Lookup\n"
             );
 
             RandomGenerator rng = new JDKRandomGenerator();
@@ -54,6 +55,9 @@ public class ThroughputBenchmark {
                     double totalRocksTimePerOp = 0.0;
                     double totalBPTreeTimePerOp = 0.0;
                     double totalBfTreeTimePerOp = 0.0;
+                    double totalRocksDiskPerLookup = 0.0;
+                    double totalBPTreeDiskPerLookup = 0.0;
+                    double totalBFTreeDiskPerLookup = 0.0;
 
                     for (int run = 1; run <= RUNS; run++) {
                         System.out.printf("  Run #%d/%d%n", run, RUNS);
@@ -81,55 +85,70 @@ public class ThroughputBenchmark {
                         double rocksSeconds = (endLookupR - startLookupR) / 1e9;
                         double rocksThroughput = (LOOKUP_COUNT / rocksSeconds) / 1e6; // Mops/s
                         double rocksTimePerOp = (rocksSeconds * 1e6) / LOOKUP_COUNT;  // µs/op
+                        long rocksDisk = RocksDBWrapper.getDiskAccesses();
+                        double rocksDiskPerLookup = (double) rocksDisk / LOOKUP_COUNT;
 
                         RocksDBWrapper.close();
 
                         totalRocksThroughput += rocksThroughput;
                         totalRocksTimePerOp += rocksTimePerOp;
+                        totalRocksDiskPerLookup += rocksDiskPerLookup;
 
                         // ===== B+Tree =====
                         BPlusTreeWrapper bptree = new BPlusTreeWrapper();
                         bptree.init("bptree.db", cacheSize);
+                        bptree.resetStats(); 
                         bptree.write(WRITE_COUNT);
+                        bptree.resetStats(); 
                         bptree.lookup(warmupSamples);
 
                         long startLookupB = System.nanoTime();
+                        bptree.resetStats(); 
                         bptree.lookup(lookupSamples);
                         long endLookupB = System.nanoTime();
 
                         double bptreeSeconds = (endLookupB - startLookupB) / 1e9;
                         double bptreeThroughput = (LOOKUP_COUNT / bptreeSeconds) / 1e6; // Mops/s
                         double bptreeTimePerOp = (bptreeSeconds * 1e6) / LOOKUP_COUNT;  // µs/op
+                        long bpDisk = bptree.getDiskAccesses();
+                        double bpDiskPerLookup = (double) bpDisk / LOOKUP_COUNT;
 
                         bptree.close();
 
                         totalBPTreeThroughput += bptreeThroughput;
                         totalBPTreeTimePerOp += bptreeTimePerOp;
+                        totalBPTreeDiskPerLookup += bpDiskPerLookup;
 
-                        // ===== B+Tree =====
+                        // ===== Bf-Tree =====
                         BFTreeWrapper bftree = new BFTreeWrapper();
                         bftree.init("bftree.db", cacheSize);
+                        bftree.resetStats(); 
                         bftree.write(WRITE_COUNT);
+                        bftree.resetStats(); 
                         bftree.lookup(warmupSamples);
 
                         long startLookupF = System.nanoTime();
+                        bftree.resetStats(); 
                         bftree.lookup(lookupSamples);
                         long endLookupF = System.nanoTime();
 
                         double bftreeSeconds = (endLookupF - startLookupF) / 1e9;
                         double bftreeThroughput = (LOOKUP_COUNT / bftreeSeconds) / 1e6; // Mops/s
                         double bftreeTimePerOp = (bftreeSeconds * 1e6) / LOOKUP_COUNT;  // µs/op
+                        long bfDisk = bftree.getDiskAccesses();
+                        double bfDiskPerLookup = (double) bfDisk / LOOKUP_COUNT;
 
                         bftree.close();
 
                         totalBfTreeThroughput += bftreeThroughput;
                         totalBfTreeTimePerOp += bftreeTimePerOp;
+                        totalBFTreeDiskPerLookup += bfDiskPerLookup;
 
                         System.out.printf(
-                            "    RocksDB: %.3f Mops/s (%.3f µs/op),  B+Tree: %.3f Mops/s (%.3f µs/op),  Bf-Tree: %.3f Mops/s (%.3f µs/op)%n",
-                            rocksThroughput, rocksTimePerOp,
-                            bptreeThroughput, bptreeTimePerOp,
-                            bftreeThroughput, bftreeTimePerOp
+                            "    RocksDB: %.3f Mops/s | %.3f µs/op |  %.3f disk/lookup,  B+Tree: %.3f Mops/s | %.3f µs/op | %.3f disk/lookup,  Bf-Tree: %.3f Mops/s | %.3f µs/op | %.3f disk/lookup%n",
+                            rocksThroughput, rocksTimePerOp, rocksDiskPerLookup,
+                            bptreeThroughput, bptreeTimePerOp, bpDiskPerLookup,
+                            bftreeThroughput, bftreeTimePerOp, bfDiskPerLookup
                         );
                     }
 
@@ -140,10 +159,13 @@ public class ThroughputBenchmark {
                     double avgRocksTimePerOp = totalRocksTimePerOp / RUNS;
                     double avgBPTreeTimePerOp = totalBPTreeTimePerOp / RUNS;
                     double avgBfTreeTimePerOp = totalBfTreeTimePerOp / RUNS;
+                    double avgRocksDiskPerLookup = totalRocksDiskPerLookup / RUNS;
+                    double avgBPTreeDiskPerLookup = totalBPTreeDiskPerLookup / RUNS;
+                    double avgBFTreeDiskPerLookup = totalBFTreeDiskPerLookup / RUNS;
 
                     // ---- CSV WRITE ----
                     writer.write(String.format(
-                            "%.3f,%.2f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
+                            "%.3f,%.2f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
                             cacheSize / (1024.0 * 1024.0),
                             zipfExp,
                             avgRocksThroughput,
@@ -151,17 +173,20 @@ public class ThroughputBenchmark {
                             avgBfTreeThroughput,
                             avgRocksTimePerOp,
                             avgBPTreeTimePerOp,
-                            avgBfTreeTimePerOp
+                            avgBfTreeTimePerOp,
+                            avgRocksDiskPerLookup,
+                            avgBPTreeDiskPerLookup,
+                            avgBFTreeDiskPerLookup
                     ));
                     writer.flush();
 
                     // ---- PRINT SUMMARY ----
                     System.out.printf(
-                        ">>> Averages: RocksDB %.3f Mops/s (%.3f µs/op), "
-                        + "B+Tree %.3f Mops/s (%.3f µs/op), Bf-Tree %.3f Mops/s (%.3f µs/op)%n%n",
-                        avgRocksThroughput, avgRocksTimePerOp,
-                        avgBPTreeThroughput, avgBPTreeTimePerOp,
-                        avgBfTreeThroughput, avgBfTreeTimePerOp
+                        ">>> Averages: RocksDB %.3f Mops/s | %.3f µs/op |  %.3f disk/lookup, "
+                        + "B+Tree %.3f Mops/s | %.3f µs/op | %.3f disk/lookup, Bf-Tree %.3f Mops/s | %.3f µs/op | %.3f disk/lookup%n%n",
+                        avgRocksThroughput, avgRocksTimePerOp, avgRocksDiskPerLookup,
+                        avgBPTreeThroughput, avgBPTreeTimePerOp, avgBPTreeDiskPerLookup,
+                        avgBfTreeThroughput, avgBfTreeTimePerOp, avgBFTreeDiskPerLookup
                     );
                 }
             }

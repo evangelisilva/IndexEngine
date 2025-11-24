@@ -172,4 +172,10 @@ public class LRUCache<K, V extends Node> {
         long total = hits + misses;
         return (total == 0) ? 0.0 : (double) hits / total;
     }
+
+    public synchronized void resetStats() {
+        hits = 0;
+        misses = 0;
+        evictions = 0;
+    }
 }

@@ -365,4 +365,14 @@ public class BPlusTree {
             node = load(node.next);
         }
     }
+
+    public long getHits() { return cache.getHits(); }
+    public long getMisses() { return cache.getMisses(); }
+    public long getEvictions() { return cache.getEvictions(); }
+    public long getDiskReads() { return disk.diskReads; }
+
+    public void resetStats() {
+        cache.resetStats();
+        disk.resetStats();
+    }
 }

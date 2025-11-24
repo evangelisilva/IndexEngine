@@ -33,4 +33,5 @@ target/
 *.page
 *.bin
 *.csv
+results/
 rocksdb_data

@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class BFTree {
 
-    private final BPlusTree tree;
+    public final BPlusTree tree;
     private final MiniPageCache cache;
 
     // You can tune this
@@ -106,6 +106,10 @@ public class BFTree {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void resetStats() {
+        tree.resetStats();
     }
 
 }

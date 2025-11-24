@@ -126,16 +126,30 @@ public class RocksDBWrapper {
         }
     }
 
-    /**
-     * Compute real block cache hit ratio using RocksDB's Statistics
-     */
+    /** Compute real block cache hit ratio */
     public static double getBlockCacheHitRatio() {
         if (stats == null) return 0.0;
 
-        long hits = stats.getTickerCount(TickerType.BLOCK_CACHE_HIT);
+        long hits   = stats.getTickerCount(TickerType.BLOCK_CACHE_HIT);
         long misses = stats.getTickerCount(TickerType.BLOCK_CACHE_MISS);
-        long total = hits + misses;
 
+        long total = hits + misses;
         return total == 0 ? 0.0 : (100.0 * hits / total);
     }
+
+    /** Disk reads = cache misses */
+    public static long getDiskAccesses() {
+        if (stats == null) return 0;
+        return stats.getTickerCount(TickerType.BLOCK_CACHE_MISS);
+    }
+
+    /** Reset all stats */
+    public static void resetStats() {
+        if (stats == null) return;
+
+        try {
+            stats.reset();
+        } catch (RocksDBException ignored) {}
+    }
+
 }

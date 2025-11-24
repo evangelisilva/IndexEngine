@@ -21,6 +21,8 @@ public class DiskManager {
     /** Size in bytes of each fixed page. */
     private final int pageSize;
 
+    public long diskReads = 0;
+
     /**
      * Opens (or creates) the on-disk storage file.
      *
@@ -139,6 +141,7 @@ public class DiskManager {
      * @throws IOException if reading fails
      */
     public Node readNode(long pageId, int order) throws IOException {
+        diskReads++; 
         byte[] page = new byte[pageSize];
         file.seek(pageId * pageSize);
         file.readFully(page);
@@ -169,6 +172,10 @@ public class DiskManager {
         }
 
         return n;
+    }
+
+    public void resetStats() {
+        diskReads = 0;
     }
 
     /**
