@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Load CSV
-df = pd.read_csv("results/bench__rocks_bp_bf__throughput_time__2m_1m.csv")
+df = pd.read_csv("results/bench__rocks_bp_bf__throughput_time_disklookup__2m_1m.csv")
 
 # Sort
 df = df.sort_values(by=["Zipf Skewness", "Cache size (MB)"])
@@ -113,5 +113,5 @@ plot_metric(
 axes[0].legend(["RocksDB", "B+Tree", "BF-Tree"], loc="upper left")
 
 plt.tight_layout()
-plt.savefig("plot/bench__rocks_bp_bf__throughput_time__2m_1m.png", dpi=300)
+plt.savefig("plot/bench__rocks_bp_bf__throughput_time_disklookup__2m_1m.png", dpi=300)
 plt.show()
