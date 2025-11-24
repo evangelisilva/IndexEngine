@@ -1,0 +1,36 @@
+# IntelliJ / VSCode
+.idea/
+*.iml
+.vscode/
+
+# Compiled class files
+*.class
+/*/*.class
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Java build directories
+bin/
+build/
+out/
+target/
+
+# On-disk storage file for the tree
+*.db
+
+# macOS
+.DS_Store
+
+# Any other simulated disk pages
+*.db
+*.dat
+*.page
+*.bin
+*.csv
+rocksdb_data
